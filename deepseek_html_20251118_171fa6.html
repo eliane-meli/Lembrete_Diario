@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lembretes de Atividades Diárias</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        /* Estilos para o modo flutuante superior esquerdo */
+        body.floating-mode {
+            background: transparent !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            overflow: hidden !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            z-index: 2147483647 !important; /* Máximo z-index possível */
+            pointer-events: none !important; /* Permite clicar através da aplicação */
+        }
+        
+        .floating-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.01);
+            z-index: -1;
+        }
+        
+        .floating-container {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            width: 350px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+            z-index: 2147483647;
+            animation: floatAppear 0.6s ease-out;
+            border-left: 5px solid #ffeb3b;
+            transition: all 0.3s ease;
+            pointer-events: auto;
+        }
+        
+        @keyframes floatAppear {
+            from {
+                transform: translateX(-100px) scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0) scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .floating-container.minimized {
+            width: 50px;
+            height: 50px;
+            padding: 5px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        
+        .floating-container.minimized:hover {
+            transform: scale(1.1);
+        }
+        
+        .floating-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .floating-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .floating-controls {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .floating-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+        
+        .floating-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+        
+        .floating-content {
+            margin-bottom: 12px;
+        }
+        
+        .floating-activity {
+            font-size: 1em;
+            margin-bottom: 8px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            border-left: 3px solid #ffeb3b;
+        }
+        
+        .floating-time {
+            font-size: 0.9em;
+            opacity: 0.9;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 5px 10px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+        
+        .floating-minimized-icon {
+            font-size: 1.8em;
+            text-align: center;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .next-activities {
+            margin-top: 8px;
+            font-size: 0.8em;
+            opacity: 0.8;
+        }
+        
+        .next-activity-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85em;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 350px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            padding: 20px;
+            display: none;
+            z-index: 2147483646;
+            animation: slideIn 0.5s ease-out;
+            border-left: 6px solid #3498db;
+            pointer-events: auto;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px) scale(0.9);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0) scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .notification.active {
+            display: block;
+        }
+        
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .notification-title {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .notification-time {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            background: #f8f9fa;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        
+        .notification-message {
+            margin-bottom: 18px;
+            color: #34495e;
+            font-size: 1.1em;
+            line-height: 1.4;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 3px solid #3498db;
+        }
+        
+        .notification-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            font-size: 0.9em;
+            min-width: 90px;
+        }
+        
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn-secondary {
+            background-color: #e0e0e0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #d0d0d0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .check-option {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            padding: 12px;
+            background: #f0f7ff;
+            border-radius: 6px;
+            border: 1px solid #d1e7ff;
+        }
+        
+        .check-option input {
+            margin-right: 10px;
+            transform: scale(1.3);
+            accent-color: #3498db;
+        }
+        
+        .check-option label {
+            font-size: 0.95em;
+            color: #2c3e50;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .notification-counter {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #e74c3c;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            text-align: center;
+            line-height: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .notification-icon {
+            font-size: 1.3em;
+            margin-right: 5px;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: none;
+            border: none;
+            font-size: 1.3em;
+            cursor: pointer;
+            color: #7f8c8d;
+            padding: 4px;
+            border-radius: 50%;
+            width: 26px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .close-btn:hover {
+            background: #f5f5f5;
+            color: #e74c3c;
+        }
+        
+        .urgent {
+            border-left-color: #e74c3c !important;
+            animation: pulse 1.2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { 
+                box-shadow: 0 8px 25px rgba(231, 76, 60, 0.4);
+            }
+            50% { 
+                box-shadow: 0 12px 35px rgba(231, 76, 60, 0.7);
+                transform: scale(1.02);
+            }
+            100% { 
+                box-shadow: 0 8px 25px rgba(231, 76, 60, 0.4);
+            }
+        }
+
+        /* Status de sincronização */
+        .sync-status {
+            text-align: center;
+            margin: 8px 0;
+            padding: 6px;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+
+        .sync-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .sync-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .sync-loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        /* Drag functionality */
+        .draggable {
+            cursor: move;
+            user-select: none;
+        }
+
+        .drag-handle {
+            cursor: move;
+            padding: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="floating-backdrop"></div>
+    
+    <!-- Lembrete flutuante no canto superior esquerdo -->
+    <div id="floatingReminder" class="floating-container">
+        <div class="floating-header">
+            <div class="floating-title draggable">
+                <span class="drag-handle">≡</span>
+                <span>⏰</span>
+                <span class="floating-title-text">Lembretes</span>
+            </div>
+            <div class="floating-controls">
+                <button class="floating-btn" id="minimizeBtn">−</button>
+                <button class="floating-btn" id="closeFloatingBtn">×</button>
+            </div>
+        </div>
+        <div class="floating-content">
+            <div class="floating-activity" id="floatingActivity">
+                Nenhuma atividade no momento
+            </div>
+            <div class="floating-time" id="floatingTime">
+                --:--
+            </div>
+            <div class="next-activities" id="nextActivities">
+                <!-- Próximas atividades serão inseridas aqui -->
+            </div>
+        </div>
+        <div id="syncStatus" class="sync-status" style="display: none;">
+            <!-- Status de sincronização será exibido aqui -->
+        </div>
+    </div>
+    
+    <div id="notification" class="notification">
+        <button class="close-btn" id="closeBtn">×</button>
+        <div class="notification-header">
+            <div class="notification-title">
+                <span class="notification-icon">⏰</span>
+                Lembrete de Atividade 
+                <span id="notificationCounter" class="notification-counter" style="display: none;">1</span>
+            </div>
+            <div class="notification-time" id="notificationTime"></div>
+        </div>
+        <div class="notification-message" id="notificationMessage"></div>
+        
+        <div class="check-option">
+            <input type="checkbox" id="markCompleted">
+            <label for="markCompleted">Marcar como concluída</label>
+        </div>
+        
+        <div class="notification-actions">
+            <button id="snoozeBtn" class="btn btn-secondary">Adiar (5 min)</button>
+            <button id="confirmBtn" class="btn btn-primary">Confirmar</button>
+        </div>
+    </div>
+
+    <script>
+        // Dados das atividades
+        const activities = [
+            { name: "Envio de report's", time: "23:00" },
+            { name: "Preencher mantra", time: "23:15" },
+            { name: "Preencher mantra Inbound", time: "04:30" },
+            { name: "Verificar e-mails importantes", time: "05:00" },
+            { name: "Fazer feedback", time: "05:15" },
+            { name: "Preencher mantra", time: "06:08" }
+        ];
+
+        // Elementos DOM
+        const floatingReminder = document.getElementById('floatingReminder');
+        const floatingActivity = document.getElementById('floatingActivity');
+        const floatingTime = document.getElementById('floatingTime');
+        const nextActivities = document.getElementById('nextActivities');
+        const syncStatus = document.getElementById('syncStatus');
+        const minimizeBtn = document.getElementById('minimizeBtn');
+        const closeFloatingBtn = document.getElementById('closeFloatingBtn');
+        const floatingTitleText = document.querySelector('.floating-title-text');
+        
+        const notification = document.getElementById('notification');
+        const notificationTime = document.getElementById('notificationTime');
+        const notificationMessage = document.getElementById('notificationMessage');
+        const notificationCounter = document.getElementById('notificationCounter');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const snoozeBtn = document.getElementById('snoozeBtn');
+        const markCompletedCheckbox = document.getElementById('markCompleted');
+        const closeBtn = document.getElementById('closeBtn');
+
+        // Estado da aplicação
+        let currentActivity = null;
+        let timers = [];
+        let snoozeTimer = null;
+        let autoReminderTimer = null;
+        let reminderCount = 0;
+        const AUTO_REMINDER_INTERVAL = 2 * 60 * 1000;
+        let isFloatingMinimized = false;
+
+        // Inicialização
+        function init() {
+            // Ativar modo flutuante imediatamente
+            document.body.classList.add('floating-mode');
+            
+            loadCompletedActivities();
+            setupTimers();
+            setupEventListeners();
+            setupDragFunctionality();
+            
+            requestNotificationPermission();
+            updateFloatingReminder();
+            
+            console.log("Sistema de lembretes flutuante ativado!");
+        }
+
+        // Configurar funcionalidade de arrastar
+        function setupDragFunctionality() {
+            const draggable = document.querySelector('.draggable');
+            let isDragging = false;
+            let currentX, currentY, initialX, initialY, xOffset = 0, yOffset = 0;
+
+            draggable.addEventListener("mousedown", dragStart);
+            document.addEventListener("mousemove", drag);
+            document.addEventListener("mouseup", dragEnd);
+
+            function dragStart(e) {
+                if (e.target.classList.contains('drag-handle') || e.target.classList.contains('draggable')) {
+                    initialX = e.clientX - xOffset;
+                    initialY = e.clientY - yOffset;
+                    if (e.target === draggable) isDragging = true;
+                }
+            }
+
+            function drag(e) {
+                if (isDragging) {
+                    e.preventDefault();
+                    currentX = e.clientX - initialX;
+                    currentY = e.clientY - initialY;
+
+                    xOffset = currentX;
+                    yOffset = currentY;
+
+                    setTranslate(currentX, currentY, floatingReminder);
+                }
+            }
+
+            function dragEnd(e) {
+                initialX = currentX;
+                initialY = currentY;
+                isDragging = false;
+            }
+
+            function setTranslate(xPos, yPos, el) {
+                el.style.transform = `translate(${xPos}px, ${yPos}px)`;
+            }
+        }
+
+        // Atualiza o lembrete flutuante
+        function updateFloatingReminder() {
+            const now = new Date();
+            const pendingActivities = activities
+                .filter(activity => !activity.completed)
+                .map(activity => {
+                    const activityTime = new Date();
+                    const [hours, minutes] = activity.time.split(':');
+                    activityTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                    
+                    if (activityTime < now) {
+                        activityTime.setDate(activityTime.getDate() + 1);
+                    }
+                    
+                    return {
+                        name: activity.name,
+                        time: activity.time,
+                        timeUntil: activityTime.getTime() - now.getTime(),
+                        date: activityTime
+                    };
+                })
+                .sort((a, b) => a.timeUntil - b.timeUntil);
+
+            if (pendingActivities.length > 0) {
+                const nextActivity = pendingActivities[0];
+                const minutesUntil = Math.round(nextActivity.timeUntil / 60000);
+                
+                floatingActivity.textContent = nextActivity.name;
+                floatingTime.textContent = `${nextActivity.time} (em ${minutesUntil} min)`;
+                
+                if (pendingActivities.length > 1) {
+                    let nextActivitiesHTML = '<div style="margin-top: 6px; font-weight: bold; font-size: 0.85em;">Próximas:</div>';
+                    for (let i = 1; i < Math.min(pendingActivities.length, 3); i++) {
+                        const activity = pendingActivities[i];
+                        const mins = Math.round(activity.timeUntil / 60000);
+                        nextActivitiesHTML += `
+                            <div class="next-activity-item">
+                                <span>${activity.name}</span>
+                                <span>${activity.time}</span>
+                            </div>
+                        `;
+                    }
+                    nextActivities.innerHTML = nextActivitiesHTML;
+                } else {
+                    nextActivities.innerHTML = '';
+                }
+            } else {
+                floatingActivity.textContent = 'Todas as atividades concluídas';
+                floatingTime.textContent = '--:--';
+                nextActivities.innerHTML = '';
+            }
+        }
+
+        // Carrega atividades completas do localStorage
+        function loadCompletedActivities() {
+            const completed = localStorage.getItem('completedActivities');
+            if (completed) {
+                const completedArray = JSON.parse(completed);
+                activities.forEach(activity => {
+                    activity.completed = completedArray.includes(activity.name + "|" + activity.time);
+                });
+            } else {
+                activities.forEach(activity => {
+                    activity.completed = false;
+                });
+            }
+        }
+
+        // Salva atividades completas no localStorage
+        function saveCompletedActivities() {
+            const completedArray = activities
+                .filter(activity => activity.completed)
+                .map(activity => activity.name + "|" + activity.time);
+            localStorage.setItem('completedActivities', JSON.stringify(completedArray));
+        }
+
+        // Configura os temporizadores para as atividades
+        function setupTimers() {
+            timers.forEach(timer => clearTimeout(timer));
+            timers = [];
+            
+            activities.forEach(activity => {
+                if (activity.completed) return;
+                
+                const now = new Date();
+                const activityTime = new Date();
+                const [hours, minutes] = activity.time.split(':');
+                activityTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                
+                if (activityTime < now) {
+                    activityTime.setDate(activityTime.getDate() + 1);
+                }
+                
+                const timeUntilActivity = activityTime.getTime() - now.getTime();
+                
+                if (timeUntilActivity > 0) {
+                    const timer = setTimeout(() => {
+                        showNotification(activity);
+                    }, timeUntilActivity);
+                    
+                    timers.push(timer);
+                }
+            });
+            
+            updateFloatingReminder();
+        }
+
+        // Mostra a notificação para uma atividade
+        function showNotification(activity) {
+            currentActivity = activity;
+            reminderCount = 0;
+            
+            updateNotificationContent();
+            notification.classList.add('active');
+            markCompletedCheckbox.checked = false;
+            playNotificationSound();
+            startAutoReminder();
+            
+            if (!document.hasFocus()) {
+                showBrowserNotification(activity, false);
+            }
+        }
+
+        // Atualiza o conteúdo da notificação
+        function updateNotificationContent() {
+            if (!currentActivity) return;
+            
+            notificationTime.textContent = currentActivity.time;
+            
+            let message = currentActivity.name;
+            if (reminderCount > 0) {
+                message += ` (Lembrete ${reminderCount + 1})`;
+                notificationCounter.textContent = reminderCount + 1;
+                notificationCounter.style.display = 'inline-flex';
+                
+                if (reminderCount >= 2) {
+                    notification.classList.add('urgent');
+                }
+            } else {
+                notificationCounter.style.display = 'none';
+                notification.classList.remove('urgent');
+            }
+            
+            notificationMessage.textContent = message;
+        }
+
+        // Inicia o sistema de lembretes automáticos
+        function startAutoReminder() {
+            if (autoReminderTimer) {
+                clearTimeout(autoReminderTimer);
+            }
+            
+            autoReminderTimer = setTimeout(() => {
+                if (currentActivity && !currentActivity.completed) {
+                    reminderCount++;
+                    updateNotificationContent();
+                    playNotificationSound();
+                    
+                    if (!document.hasFocus()) {
+                        showBrowserNotification(currentActivity, true);
+                    }
+                    
+                    startAutoReminder();
+                }
+            }, AUTO_REMINDER_INTERVAL);
+        }
+
+        // Para o sistema de lembretes automáticos
+        function stopAutoReminder() {
+            if (autoReminderTimer) {
+                clearTimeout(autoReminderTimer);
+                autoReminderTimer = null;
+            }
+            reminderCount = 0;
+            notification.classList.remove('urgent');
+            notificationCounter.style.display = 'none';
+        }
+
+        // Toca um som de notificação
+        function playNotificationSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                if (reminderCount > 0) {
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.value = 600;
+                    gainNode.gain.value = 0.15;
+                } else {
+                    oscillator.type = 'sine';
+                    oscillator.frequency.value = 800;
+                    gainNode.gain.value = 0.1;
+                }
+                
+                oscillator.start();
+                setTimeout(() => { oscillator.stop(); }, 300);
+            } catch (e) {
+                console.log("Áudio não suportado neste navegador");
+            }
+        }
+
+        // Solicita permissão para notificações do navegador
+        function requestNotificationPermission() {
+            if ("Notification" in window && Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+        }
+
+        // Mostra notificação do navegador
+        function showBrowserNotification(activity, isReminder) {
+            if ("Notification" in window && Notification.permission === "granted") {
+                const title = isReminder ? "Lembrete Repetido" : "Lembrete de Atividade";
+                const body = isReminder ? 
+                    `${activity.name} - ${activity.time} (Lembrete ${reminderCount + 1})` : 
+                    `${activity.name} - ${activity.time}`;
+                
+                new Notification(title, {
+                    body: body,
+                    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏰</text></svg>",
+                    tag: "activity-reminder"
+                });
+            }
+        }
+
+        // Mostrar status de sincronização
+        function showSyncStatus(message, type) {
+            syncStatus.textContent = message;
+            syncStatus.className = 'sync-status';
+            
+            switch (type) {
+                case 'success':
+                    syncStatus.classList.add('sync-success');
+                    break;
+                case 'error':
+                    syncStatus.classList.add('sync-error');
+                    break;
+                case 'loading':
+                    syncStatus.classList.add('sync-loading');
+                    break;
+            }
+            
+            syncStatus.style.display = 'block';
+            
+            // Auto-esconder após alguns segundos
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    syncStatus.style.display = 'none';
+                }, 4000);
+            }
+        }
+
+        // Alternar entre minimizado e expandido
+        function toggleFloatingReminder() {
+            isFloatingMinimized = !isFloatingMinimized;
+            
+            if (isFloatingMinimized) {
+                floatingReminder.classList.add('minimized');
+                floatingTitleText.style.display = 'none';
+                floatingReminder.innerHTML = `
+                    <div class="floating-minimized-icon">⏰</div>
+                `;
+            } else {
+                floatingReminder.classList.remove('minimized');
+                floatingReminder.innerHTML = `
+                    <div class="floating-header">
+                        <div class="floating-title draggable">
+                            <span class="drag-handle">≡</span>
+                            <span>⏰</span>
+                            <span class="floating-title-text">Lembretes</span>
+                        </div>
+                        <div class="floating-controls">
+                            <button class="floating-btn" id="minimizeBtn">−</button>
+                            <button class="floating-btn" id="closeFloatingBtn">×</button>
+                        </div>
+                    </div>
+                    <div class="floating-content">
+                        <div class="floating-activity" id="floatingActivity">
+                            ${floatingActivity.textContent}
+                        </div>
+                        <div class="floating-time" id="floatingTime">
+                            ${floatingTime.textContent}
+                        </div>
+                        <div class="next-activities" id="nextActivities">
+                            ${nextActivities.innerHTML}
+                        </div>
+                    </div>
+                    <div id="syncStatus" class="sync-status" style="display: none;"></div>
+                `;
+                
+                // Reatribuir event listeners
+                document.getElementById('minimizeBtn').addEventListener('click', toggleFloatingReminder);
+                document.getElementById('closeFloatingBtn').addEventListener('click', () => {
+                    floatingReminder.style.display = 'none';
+                    showSyncStatus('Lembrete ocultado. Recarregue a página para restaurar.', 'error');
+                });
+                
+                // Reconfigurar arrastar
+                setupDragFunctionality();
+            }
+        }
+
+        // Esconde a notificação
+        function hideNotification() {
+            notification.classList.remove('active');
+            stopAutoReminder();
+            currentActivity = null;
+        }
+
+        // Configura os event listeners
+        function setupEventListeners() {
+            // Confirmar atividade
+            confirmBtn.addEventListener('click', async () => {
+                if (currentActivity) {
+                    if (markCompletedCheckbox.checked) {
+                        currentActivity.completed = true;
+                        saveCompletedActivities();
+                        setupTimers();
+                        
+                        showSyncStatus('Atividade concluída!', 'success');
+                        console.log(`Atividade concluída: ${currentActivity.name}`);
+                    }
+                }
+                hideNotification();
+            });
+            
+            // Adiar notificação
+            snoozeBtn.addEventListener('click', () => {
+                hideNotification();
+                snoozeTimer = setTimeout(() => {
+                    if (currentActivity && !currentActivity.completed) {
+                        showNotification(currentActivity);
+                    }
+                }, 5 * 60 * 1000);
+                
+                showSyncStatus('Notificação adiada por 5 minutos', 'success');
+            });
+            
+            // Fechar notificação
+            closeBtn.addEventListener('click', () => {
+                hideNotification();
+            });
+
+            // Event listeners para o lembrete flutuante
+            minimizeBtn.addEventListener('click', toggleFloatingReminder);
+
+            closeFloatingBtn.addEventListener('click', () => {
+                floatingReminder.style.display = 'none';
+                showSyncStatus('Lembrete ocultado. Recarregue a página para restaurar.', 'error');
+            });
+
+            floatingReminder.addEventListener('click', (e) => {
+                if (isFloatingMinimized) {
+                    toggleFloatingReminder();
+                }
+            });
+
+            // Atualizar o lembrete flutuante a cada minuto
+            setInterval(updateFloatingReminder, 60000);
+        }
+
+        // Inicializa a aplicação quando a página carrega
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
